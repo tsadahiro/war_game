@@ -5,6 +5,7 @@ import GameScreen from "./GameScreen";
 import type { FormationInput } from "./formationLogic";
 import {useGameConnection} from "./hooks/useGameConnection";
 import {Button, Stack, TextField} from '@mui/material';
+import type {Team} from "./types";
 
 export default function App() {
   const [page, setPage] = useState<"setup" | "formation" | "game">("setup");
@@ -16,14 +17,25 @@ export default function App() {
   const {me,dataStream, joinRoom, players}:any = useGameConnection();
 
   function receiver(msg:any) {
+    if (msg.north!==null){
+      setNorthFormation(msg.north);
+    }
+    if (msg.south!==null){
+      setSouthFormation(msg.south);
+    }
     console.log(msg);
   }
   
 
   // === 部隊編成完了時 ===
   const handleSetupComplete = (north: FormationInput, south: FormationInput) => {
-    setNorthFormation(north);
-    setSouthFormation(south);
+    if (jinei() === "north"){
+      setNorthFormation(north);
+      dataStream.write(JSON.stringify({north:north}))
+    }else{
+      setSouthFormation(south);
+      dataStream.write(JSON.stringify({south:south}))
+    }
     setPage("formation");
   };
 
@@ -32,8 +44,13 @@ export default function App() {
     placedNorth: FormationInput,
     placedSouth: FormationInput
   ) => {
-    setNorthFormation(placedNorth);
-    setSouthFormation(placedSouth);
+    if (jinei() == "north"){
+      setNorthFormation(placedNorth);
+      dataStream.write(JSON.stringify({north:placedNorth}))
+    }else{
+      setSouthFormation(placedSouth);
+      dataStream.write(JSON.stringify({south:placedSouth}))
+    }
     setPage("game");
   };
 
@@ -41,9 +58,9 @@ export default function App() {
     if (me === null) return;
     if (me === undefined) return;
     if (me?.id === players[0]?.id){
-      return("kita")
+      return("north")
     }else{
-      return("minami")
+      return("south")
     }
   }
   
@@ -66,7 +83,7 @@ export default function App() {
   
   if (page === "setup") {
     console.log(jinei());
-    return <TeamSetupScreen onComplete={handleSetupComplete} />;
+    return <TeamSetupScreen team={jinei()} onComplete={handleSetupComplete} />;
   }
 
   if (page === "formation" && northFormation && southFormation) {

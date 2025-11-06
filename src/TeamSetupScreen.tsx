@@ -5,6 +5,7 @@ import { defaultNorthFormation , defaultSouthFormation } from "./defaultFormatio
 
 type TeamSetupScreenProps = {
     onComplete: (north: FormationInput, south: FormationInput) => void;
+    team: Team;    
 };
 
 type UnitType = "infantry" | "raider" | "support";
@@ -15,7 +16,7 @@ const unitLabel: Record<UnitType, string> = {
     support: "支援部隊",
 };
 
-export default function TeamSetupScreen({ onComplete }: TeamSetupScreenProps) {
+export default function TeamSetupScreen({ onComplete, team }: TeamSetupScreenProps) {
   const [northFormation, setNorthFormation] = useState<FormationInput>(defaultNorthFormation);
   const [southFormation, setSouthFormation] = useState<FormationInput>(defaultSouthFormation);
 
@@ -63,9 +64,12 @@ export default function TeamSetupScreen({ onComplete }: TeamSetupScreenProps) {
       <p>各陣営の部隊構成を設定してください（合計100人）</p>
 
       <div style={{ display: "flex", justifyContent: "center", gap: 60, marginTop: 30 }}>
+        {team == "north"?
         <TeamEditor label="北陣営" formation={northFormation} setFormation={setNorthFormation} />
+          :
         <TeamEditor label="南陣営" formation={southFormation} setFormation={setSouthFormation} />
-      </div>
+        }
+        </div>
 
       <button
         onClick={() => {
