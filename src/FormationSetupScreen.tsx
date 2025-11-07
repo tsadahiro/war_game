@@ -36,12 +36,14 @@ const unitLabel: Record<UnitType, string> = {
 type Props = {
   northFormation: FormationInput;
   southFormation: FormationInput;
+  team: Team;
   onComplete: (north: FormationInput, south: FormationInput) => void;
 };
 
 export default function FormationSetupScreen({
   northFormation,
   southFormation,
+  team,
   onComplete,
 }: Props) {
   const [selectedTeam, setSelectedTeam] = useState<"north" | "south" | null>(
@@ -60,8 +62,6 @@ export default function FormationSetupScreen({
   // 盤面サイズ
   const cols = 16;
   const rows = 30;
-
-  
 
   // 配置可能マスクリック
   const handleCellClick = (x: number, y: number) => {
@@ -94,7 +94,8 @@ export default function FormationSetupScreen({
 
   // 現在の選択部隊リストを取得
   const currentFormation =
-    selectedTeam === "north" ? northFormation : southFormation;
+    team === "north" ? northFormation : southFormation;
+    //selectedTeam === "north" ? northFormation : southFormation;
 
   // 配置完了処理
   const handleComplete = () => {
@@ -126,7 +127,8 @@ export default function FormationSetupScreen({
 
       {/* チーム選択 ⚠️随時変更 */}
       <div style={{ marginBottom: 20 }}>
-        <button
+	{team === "north" ?
+        (<button
           onClick={() => setSelectedTeam("north")}
           style={{
             color: "black",
@@ -136,8 +138,9 @@ export default function FormationSetupScreen({
           }}
         >
           北陣営を編成
-        </button>
-        <button
+        </button>)
+	:
+        (<button
           onClick={() => setSelectedTeam("south")}
           style={{
             background: selectedTeam === "south" ? "#f08080" : "#eee",
@@ -145,7 +148,8 @@ export default function FormationSetupScreen({
           }}
         >
           南陣営を編成
-        </button>
+        </button>)
+	}
       </div>
 
       {/* 盤面 */}
@@ -296,8 +300,9 @@ export default function FormationSetupScreen({
           fontSize: 18,
         }}
         disabled={
-          placedUnits.filter((u) => u.id.startsWith("north")).length === 0 ||
-          placedUnits.filter((u) => u.id.startsWith("south")).length === 0
+          placedUnits.filter((u) => u.id.startsWith(team)).length === 0 
+          //placedUnits.filter((u) => u.id.startsWith("north")).length === 0 ||
+          //placedUnits.filter((u) => u.id.startsWith("south")).length === 0
         }
         onClick={handleComplete}
       >

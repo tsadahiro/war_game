@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import TeamSetupScreen from "./TeamSetupScreen";
 import FormationSetupScreen from "./FormationSetupScreen";
 import GameScreen from "./GameScreen";
@@ -13,17 +13,29 @@ export default function App() {
   const [southFormation, setSouthFormation] = useState<FormationInput | null>(null);
   const [roomName, setRoomName] = useState<string>("");
   const [nickname, setNickname] = useState<string>("");
+  const [team, setTeam] = useState<Team>(null);
   
-  const {me,dataStream, joinRoom, players}:any = useGameConnection();
+  const {me, dataStream, joinRoom, players}:any = useGameConnection();
+
+  const meRef = useRef<any>(null);
+  useEffect(() => { meRef.current = me; }, [me]);
 
   function receiver(msg:any) {
-    if (msg.north!==null){
+    if (msg.north!==undefined && jinei() === "south"){
       setNorthFormation(msg.north);
+      console.log("north set")
+      if (southFormation!==null){
+	setPage("formation");
+      }
     }
-    if (msg.south!==null){
+    if (msg.south!==undefined && jinei() === "north"){
       setSouthFormation(msg.south);
+      console.log("south set")
+      if (northFormation!==null){
+	setPage("formation");
+      }
     }
-    console.log(msg);
+    console.log(meRef.current,jinei(),msg.north, msg.south);
   }
   
 
@@ -31,12 +43,19 @@ export default function App() {
   const handleSetupComplete = (north: FormationInput, south: FormationInput) => {
     if (jinei() === "north"){
       setNorthFormation(north);
+      console.log("north set")
       dataStream.write(JSON.stringify({north:north}))
+      //if (southFormation){
+	setPage("formation");
+      //}
     }else{
       setSouthFormation(south);
+      console.log("south set")
       dataStream.write(JSON.stringify({south:south}))
+      //if (northFormation){
+	setPage("formation");
+      //}
     }
-    setPage("formation");
   };
 
   // === 配置完了時 ===
@@ -55,40 +74,48 @@ export default function App() {
   };
 
   function jinei(){
-    if (me === null) return;
-    if (me === undefined) return;
-    if (me?.id === players[0]?.id){
+    if (meRef.current === null) return;
+    if (meRef.current === undefined) return;
+    if (meRef.current?.id === players[0]?.id){
       return("north")
     }else{
       return("south")
     }
   }
-  
-  if (me === null){
-    return(
-      (<Stack direction={"row"}>
-         <Button variant='contained'
-                 onClick={()=>{joinRoom(roomName,nickname,receiver)}}
-         >Join</Button>
-         <TextField placeholder='room'
-                    onChange={(e)=>{setRoomName(e.target.value)}}
-         ></TextField>
-         <TextField  placeholder='nickname'
-                     onChange={(e)=>{setNickname(e.target.value)}}
-         ></TextField>
-       </Stack>
-      )
-    )
-  }
-  
-  if (page === "setup") {
-    console.log(jinei());
-    return <TeamSetupScreen team={jinei()} onComplete={handleSetupComplete} />;
+
+  const [loading, setLoading] = useState(false);
+
+  const handleJoin = async () => {
+    if (me) return; // 二重join防止
+    setLoading(true);
+    try {
+      await joinRoom(roomName, nickname, receiver);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (me === null) {
+    if (loading) return <div>接続中...</div>;
+    return (
+      <Stack direction="row">
+	<Button variant="contained" onClick={handleJoin}>Join</Button>
+	<TextField placeholder="room" onChange={(e)=>setRoomName(e.target.value)} />
+	<TextField placeholder="nickname" onChange={(e)=>setNickname(e.target.value)} />
+      </Stack>
+    );
   }
 
-  if (page === "formation" && northFormation && southFormation) {
+  
+  if (page === "setup") {
+    return <>{me.id}<TeamSetupScreen team={jinei()} onComplete={handleSetupComplete} /></>;
+  }
+
+  //if (page === "formation" && northFormation && southFormation) {
+  if (page === "formation") {
     return (
       <FormationSetupScreen
+	team={jinei()}
         northFormation={northFormation}
         southFormation={southFormation}
         onComplete={handleFormationComplete}
